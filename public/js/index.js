@@ -5,36 +5,32 @@ socket.on('connect', function () {
 });
 
 socket.on('disconnect', function () {
-    alert('Disconected from server');
+    console.log('Disconected from server');
 });
 
 socket.on('newMessage', function (message) {
-    console.log('newMessage', message);
-    var li = $('<li>', { text : `${message.from}: ${message.text}` });
+    var formattedTime = moment(message.createdAt).format('h:mm a');
+    var li = $('<li>', { text : `${message.from} ${formattedTime}: ${message.text}` });
 
     $("#messages").append(li);
 });
 
 socket.on('newLocationMessage', function(message){
-    var li = $('<li>', { text: `${message.from}: `});
+    var formattedTime = moment(message.createdAt).format('h:mm a');
+    var li = $('<li>', { text: `${message.from} ${formattedTime}: `});
     var a = $('<a>', { href: message.url, target: '_blank', text: 'My current location'});
     li.append(a);
 });
 
-socket.emit('createMessage', {
-    from: 'Frank',
-    text: 'Hi'
-}, function (data) {
-    console.log('Got it',data);
-});
+var messageTextbox = $("[name=message]");
 
 $('#message-form').on('submit', function (e) {
     e.preventDefault();
     socket.emit('createMessage', {
         from: "User",
-        text: $('[name=message]').val()
+        text: messageTextbox.val()
     }, function () {
-        
+        messageTextbox.val("");
     });
 });
 
@@ -45,12 +41,18 @@ locationButton.on('click', function(){
         return alert('Geolocation not supported by your browser');
     }
 
+    locationButton.attr('disabled','disabled').text('Sending location...');
+
     navigator.geolocation.getCurrentPosition(function(position){
+        locationButton.removeAttr('disabled').text('Send location');
+
         socket.emit('createLocationMessage', {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
         });
     }, function(){
+        locationButton.removeAttr('disabled').text('Send location');
+
         alert('Unable to fetch location');
     },{maximumAge:60000, timeout:5000, enableHighAccuracy:true});
 });
